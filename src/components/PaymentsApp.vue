@@ -1,6 +1,30 @@
 <!-- eslint-disable vue/require-v-for-key -->
 <template>
   <main>
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Modificar estado</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Selecciona el estado en que se encuentra el pago</p>
+            <p>Estado</p>
+            <select>
+              <option disabled value="">Seleccione un elemento</option>
+              <option>Por pagar</option>
+              <option>Pagado</option>
+            </select>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="container-fluid p-5">
       <div v-if="!editing" class="payments container-fluid m-0 p-0">
         <div class="payments__info d-flex justify-content-between align-items-center p-4">
@@ -50,7 +74,12 @@
             <p>Agregar Pago</p>
           </div> -->
               <div class="payments__card__box d-flex justify-content-center align-items-center flex-column">
-                <div class="card__state"></div>
+                <!-- Button trigger modal -->
+                <a class="" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                  <div class="card__state d-flex justify-content-center align-items-center">
+                    <img class="card__state__pencil" src="../assets/pencil.svg" alt="" />
+                  </div>
+                </a>
                 <p class="card__title mt-2">{{ item.title }}</p>
                 <p class="card__info mt-2">
                   <span class="card__info--receivable">{{ item.toBePaid }} {{ CURRENCY }}</span> ({{
@@ -124,7 +153,40 @@
                 <button class="btn--addPayment--first" @click="increasePercentage(item)">+</button>
               </div>
               <p class="payments__info__receivable">Vence</p>
-              <p class="card__date mt-1">22 Ene, 2022</p>
+              <p class="card__date mt-1">
+                <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M11.6667 2.66667H2.33333C1.59695 2.66667 1 3.26362 1 4V13.3333C1 14.0697 1.59695 14.6667 2.33333 14.6667H11.6667C12.403 14.6667 13 14.0697 13 13.3333V4C13 3.26362 12.403 2.66667 11.6667 2.66667Z"
+                    stroke="#1D4ED8"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M1 6.66666H13"
+                    stroke="#1D4ED8"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M9.66663 1.33333V4"
+                    stroke="#1D4ED8"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M4.33337 1.33333V4"
+                    stroke="#1D4ED8"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+
+                22 Ene, 2022
+              </p>
             </div>
           </div>
         </div>
@@ -165,7 +227,7 @@ export default {
       RECEIVABLE,
       lastPayment: {},
       newPayment: {},
-      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, instalments: 1 }], //Cuotas
+      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100 }], //Cuotas
       newDb: [],
       editing: false,
     };
@@ -174,8 +236,18 @@ export default {
     lastIndex: function () {
       let lastIndex = this.db[this.db.length - 1];
       lastIndex = this.db.indexOf(lastIndex);
-      console.log(lastIndex);
+
       return lastIndex;
+    },
+    receivableValidator: function () {
+      let acum = 0;
+      console.log(this.db);
+      this.db.forEach((item) => {
+        acum += item.toBePaid;
+        console.log('pe', item.toBePaid);
+      });
+      console.log('acum', acum);
+      return acum;
     },
   },
 
@@ -185,6 +257,7 @@ export default {
 
       return total;
     },
+
     addPayment() {
       this.isEditing();
       this.lastPayment = this.db[this.db.length - 1];
@@ -198,7 +271,6 @@ export default {
         title: 'Pago Final',
         toBePaid: this.rounded(this.lastPayment.toBePaid / 2),
         percentage: this.lastPayment.percentage / 2,
-        instalments: 1,
       };
       this.lastPayment.toBePaid -= this.newPayment.toBePaid;
       this.lastPayment.toBePaid = this.rounded(this.lastPayment.toBePaid);
@@ -209,12 +281,14 @@ export default {
     },
 
     savePayment() {
+      console.log('hola', this.receivableValidator);
       let isEmpty = Object.keys(this.newPayment).length;
+
       if (isEmpty) {
         this.db.push(this.newPayment);
       }
       this.editing = false;
-      console.log(this.editing);
+      this.newPayment = {};
     },
     increasePercentage(item) {
       if (this.validator(item)) {
@@ -234,22 +308,18 @@ export default {
     },
     validator(item) {
       const lastPay = this.db[this.db.length - 1];
-      console.log('holisas', lastPay);
       if (lastPay.percentage - 1 < 0 || item.percentage - 1 < 0) {
-        console.log('holis', item);
         return false;
       }
       return true;
     },
     edit() {
       this.newDb = { ...this.db };
-      console.log('toedit');
 
       return this.lastPayment;
     },
     isEditing() {
       this.editing = true;
-      console.log(this.editing);
       return this.editing;
     },
   },
@@ -260,7 +330,8 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
 main {
-  width: 800px;
+  width: 100%;
+  min-width: 380px;
 }
 .payments {
   background-color: #ffffff;
@@ -291,6 +362,12 @@ input {
   border-radius: 50%;
   width: 48px;
   height: 48px;
+}
+.card__state__pencil {
+  opacity: 0;
+}
+.card__state__pencil:hover {
+  opacity: 1;
 }
 .card__title {
   font-size: 1.15rem;
