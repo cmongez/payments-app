@@ -21,15 +21,13 @@
           <div class="content-select">
             <select class="modal-select py-2 ps-2">
               <option>22 de enero, 2022</option>
-              <option>Por pagar</option>
-              <option>Pagado</option>
             </select>
-            <img class="modal-calendar" src="../assets/calendar-gray.svg" />
+            <img class="modal-calendar" @click="deletePayment(paymentToEdit)" src="../assets/calendar-gray.svg" />
           </div>
         </div>
 
         <div class="modal-footer">
-          <img src="../assets/delete.svg" alt="" />
+          <img @click="deletePayment(paymentToEdit)" data-bs-dismiss="modal" src="../assets/delete.svg" alt="" />
           <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Guardar</button>
         </div>
       </div>
@@ -39,10 +37,20 @@
 
 <script>
 export default {
-  props: {},
+  props: {
+    paymentToEdit: {
+      type: Object,
+    },
+  },
   name: 'PaymentsModal',
   data() {
     return {};
+  },
+  methods: {
+    deletePayment(paymentToDelete) {
+      console.log(paymentToDelete);
+      this.$emit('deletePayment', paymentToDelete);
+    },
   },
 };
 </script>

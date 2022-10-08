@@ -9,7 +9,7 @@
             <img src="../assets/arrowPayments.svg" alt="" />
           </div>
 
-          <div @click="isEditing(), edit()" class="d-flex gap-3">
+          <div @click="isEditing()" class="d-flex gap-3">
             <button class="btn--primary">
               Editar
               <img src="../assets/pencil.svg" alt="" />
@@ -24,9 +24,9 @@
             <div :key="index" class="payments__card d-flex position-relative">
               <div class="payments__card__box d-flex justify-content-center align-items-center flex-column">
                 <!-- Button modal -->
-                <PaymentsModal />
+                <PaymentsModal @deletePayment="onDeletePayment" :paymentToEdit="paymentToEdit" />
 
-                <a class="" @click="edit()" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <a class="" @click="editPayment(item, index)" data-bs-toggle="modal" data-bs-target="#exampleModal">
                   <div class="card__state d-flex justify-content-center align-items-center">
                     <img class="card__state__pencil" src="../assets/pencil.svg" alt="" />
                   </div>
@@ -64,7 +64,7 @@
         </div>
         <div class="flex-nowrap payments__box d-flex px-4 py-4 mx-3 justify-content-between">
           <div
-            v-for="(item, index) in newDb"
+            v-for="(item, index) in db"
             :key="index"
             class="payments__card d-flex justify-content-center align-items-start"
           >
@@ -74,10 +74,10 @@
 
               <input class="card__info mt-2" maxlength="4" v-model="item.toBePaid" />
               <div>
-                <button class="btn--addPayment--first" @click="decreasePercentage(item)">-</button>
+                <button class="btn--addPayment--first" @click="decreasePercentage(item, index)">-</button>
 
                 <span>{{ item.percentage }}%</span>
-                <button class="btn--addPayment--first" @click="increasePercentage(item)">+</button>
+                <button class="btn--addPayment--first" @click="increasePercentage(item, index)">+</button>
               </div>
               <p class="payments__info__receivable">Vence</p>
               <p class="card__date mt-1"><img src="../assets/calendar.svg" alt="" /> 22 Ene, 2022</p>
@@ -103,10 +103,10 @@ export default {
     return {
       CURRENCY,
       RECEIVABLE,
-      lastPayment: {},
+      previousPayment: {},
       newPayment: {},
-      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, paid: false }], //Cuotas
-      newDb: [],
+      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, state: 'pending' }], //Cuotas
+      paymentToEdit: {},
       editing: false,
     };
   },
@@ -138,64 +138,82 @@ export default {
 
     addPayment() {
       this.isEditing();
-      this.lastPayment = this.db[this.db.length - 1];
 
-      this.lastPayment.title == 'Anticipo'
-        ? this.lastPayment.title
-        : (this.lastPayment.title = `Pago ${this.lastPayment.id}`);
+      this.previousPayment = this.db[this.db.length - 1];
+
+      this.previousPayment.title == 'Anticipo' ? this.previousPayment.title : (this.previousPayment.title = 'Nuevo');
 
       this.newPayment = {
         id: this.db.length,
         title: 'Pago Final',
-        toBePaid: this.rounded(this.lastPayment.toBePaid / 2),
-        percentage: this.lastPayment.percentage / 2,
+        toBePaid: this.rounded(this.previousPayment.toBePaid / 2),
+        percentage: this.previousPayment.percentage / 2,
+        state: 'pending',
       };
-      this.lastPayment.toBePaid -= this.newPayment.toBePaid;
-      this.lastPayment.toBePaid = this.rounded(this.lastPayment.toBePaid);
-      this.lastPayment.percentage /= 2;
-      this.newDb = [...this.db, this.newPayment];
+      this.previousPayment.toBePaid -= this.newPayment.toBePaid;
+      this.previousPayment.toBePaid = this.rounded(this.previousPayment.toBePaid);
+      this.previousPayment.percentage /= 2;
+      this.db.push(this.newPayment);
 
-      return this.lastPayment;
+      return this.previousPayment;
     },
 
     savePayment() {
-      console.log('hola', this.receivableValidator);
-      let isEmpty = Object.keys(this.newPayment).length;
-
-      if (isEmpty) {
-        this.db.push(this.newPayment);
-      }
       this.editing = false;
       this.newPayment = {};
     },
 
-    increasePercentage(item) {
-      if (this.validator(item)) {
-        this.db[this.db.length - 1].percentage--;
-        item.percentage++;
+    increasePercentage(item, index) {
+      console.log(item, index);
+      if (this.incrementValidator(item, index)) {
+        if (index === 0) {
+          this.db[index + 1].percentage--;
+          item.percentage++;
+        } else {
+          this.db[index - 1].percentage--;
+          item.percentage++;
+        }
       }
 
       return item;
     },
-    decreasePercentage(item) {
-      if (this.validator(item)) {
-        this.db[this.db.length - 1].percentage++;
-
-        item.percentage--;
+    decreasePercentage(item, index) {
+      console.log(item, index);
+      if (this.decreaseValidator(item, index)) {
+        console.log('valide');
+        if (index === 0) {
+          this.db[index + 1].percentage++;
+          item.percentage--;
+        } else {
+          this.db[index - 1].percentage++;
+          item.percentage--;
+        }
       }
+      console.log(index);
+
       return item;
     },
-    validator(item) {
-      const lastPay = this.db[this.db.length - 1];
-      if (lastPay.percentage - 1 < 0 || item.percentage - 1 < 0) {
+    incrementValidator(item, index) {
+      let { percentage } = index === 0 ? this.db[index + 1] : this.db[index - 1];
+
+      if (percentage - 1 < 0) {
+        console.log('falso');
         return false;
+      } else {
+        console.log('true');
+        return true;
       }
-      return true;
     },
-    edit() {
-      this.newDb = { ...this.db };
+    decreaseValidator(item, index) {
+      let { percentage } = index === 0 ? this.db[index + 1] : this.db[index];
 
-      return this.lastPayment;
+      if (percentage - 1 < 0) {
+        console.log('falso');
+        return false;
+      } else {
+        console.log('true');
+        return true;
+      }
     },
     isEditing() {
       this.editing = true;
@@ -207,6 +225,20 @@ export default {
       }));
       this.db = arrayNew;
       return this.db;
+    },
+    editPayment(payment, index) {
+      this.paymentToEdit = { payment, index };
+      console.log(this.paymentToEdit);
+    },
+    // Listening emits
+    onDeletePayment(paymentToDelete) {
+      let { payment, index } = paymentToDelete;
+
+      let newDb = this.db.filter((item) => item !== payment);
+
+      this.db[index - 1].percentage += this.db[index].percentage;
+      this.db[index - 1].toBePaid += this.db[index].toBePaid;
+      this.db = newDb;
     },
   },
 };
