@@ -3,9 +3,7 @@
 export default {
   name: 'EditPayments',
   data() {
-    return {
-      prueba: 'hola',
-    };
+    return {};
   },
 };
 </script>
