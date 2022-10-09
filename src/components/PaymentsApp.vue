@@ -1,9 +1,8 @@
-<!-- eslint-disable vue/require-v-for-key -->
 <template>
   <main>
     <div class="container-fluid p-5">
       <div v-if="!editing" class="payments container-fluid m-0 p-0">
-        <div class="payments__info d-flex justify-content-between align-items-center p-4">
+        <div class="payments__info d-flex justify-content-between align-items-center">
           <div class="d-flex justify-content-center align-items-center">
             <h1 class="payments__info__title mb-0 me-2">Pagos</h1>
             <img src="../assets/arrowPayments.svg" alt="" />
@@ -18,44 +17,40 @@
             ><span class="payments__info__amount"> {{ this.RECEIVABLE }} {{ this.CURRENCY }}</span>
           </div>
         </div>
-        <div class="flex-nowrap payments__box d-flex px-4 py-4 mx-3">
+        <PaymentsModal @paymentPaid="onPaymentPaid" @deletePayment="onDeletePayment" :paymentToEdit="paymentToEdit" />
+        <div class="flex-nowrap payments__box d-flex justify-content-between">
           <!-- CARDS -->
-          <div v-for="(item, index) in db" :key="index">
-            <div class="payments__card d-flex position-relative">
+          <div class="d-flex" v-for="(item, index) in db" :key="index">
+            <div class="payments__card d-flex">
               <div class="payments__card__box d-flex justify-content-center align-items-center flex-column">
                 <!-- Button modal -->
-                <PaymentsModal
-                  @paymentPaid="onPaymentPaid"
-                  @deletePayment="onDeletePayment"
-                  :paymentToEdit="paymentToEdit"
-                />
 
-                <a
-                  v-if="item.status === 'pending'"
-                  class=""
-                  @click="editPayment(item, index)"
-                  data-bs-toggle="modal"
-                  data-bs-target="#exampleModal"
-                >
-                  <div class="card__status d-flex justify-content-center align-items-center">
-                    <img
-                      v-if="item.status === 'pending'"
-                      class="card__status__pencil"
-                      src="../assets/pencil.svg"
-                      alt=""
-                    />
-                    <img v-else src="../assets/paid.svg" />
-                  </div>
-                </a>
+                <div>
+                  <!-- <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div> -->
+                  <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div>
+                  <a
+                    v-if="item.status === 'pending'"
+                    class="d-flex letra"
+                    @click="editPayment(item, index)"
+                    data-bs-toggle="modal"
+                    data-bs-target="#exampleModal"
+                  >
+                    <div class="card__status position-relative d-flex justify-content-center align-items-center">
+                      <img
+                        v-if="item.status === 'pending'"
+                        class="card__status__pencil"
+                        src="../assets/pencil.svg"
+                        alt=""
+                      />
+                      <img v-else src="../assets/paid.svg" />
+                    </div>
+                  </a>
+                  linea
+                  <!-- <div v-if="index !== lastIndex" class="position-relative"><div class="linead"></div></div> -->
+                </div>
                 <!-- BOTON PAGADO -->
-                <a
-                  v-if="item.status === 'paid'"
-                  class=""
-                  @click="editPayment(item, index)"
-                  data-bs-toggle="modal"
-                  data-bs-target="#exampleModal"
-                >
-                  <div class="card__status d-flex justify-content-center align-items-center">
+                <a v-if="item.status === 'paid'" class="">
+                  <div class="card__status--paid d-flex justify-content-center align-items-center">
                     <img src="../assets/paid.svg" />
                   </div>
                 </a>
@@ -65,12 +60,18 @@
                     item.percentage
                   }})%
                 </p>
-                <p class="card__date mt-2"><span v-if="item.status === 'paid'">Pagado</span> {{ item.date }}</p>
+                <p class="card__date">
+                  <span class="card__date__paid" v-if="item.status === 'paid'">Pagado {{ item.date }}</span>
+                </p>
               </div>
-              <div v-if="db.length == 1 || index != lastIndex" class="payments__box__addPayment mt-1">
-                <button class="btn--addPayment" @click="addPayment(index)">+</button>
-                <p>Agregar Pago</p>
-              </div>
+            </div>
+
+            <div
+              v-if="(db.length == 1 && item.status === 'pending') || item.status === 'pending'"
+              class="payments__box__addPayment mt-2"
+            >
+              <button class="btn--addPayment" @click="addPayment(index)">+</button>
+              <p>Agregar Pago</p>
             </div>
           </div>
         </div>
@@ -89,34 +90,64 @@
             ><span class="payments__info__amount"> {{ this.RECEIVABLE }} {{ this.CURRENCY }}</span>
           </div>
         </div>
-        <div class="flex-nowrap payments__box d-flex px-4 py-4 mx-3 justify-content-between">
-          <div
-            v-for="(item, index) in db"
-            :key="index"
-            class="payments__card d-flex justify-content-center align-items-start"
-          >
-            <div class="d-flex justify-content-center align-items-center flex-column">
-              <div class="card__status"></div>
-              <input class="card__title mt-2" v-model="item.title" />
+        <div class="flex-nowrap payments__box d-flex gap-2">
+          <div v-for="(item, index) in db" :key="index">
+            <div class="edit__card payments__card d-flex justify-content-center align-items-center flex-column">
+              <div v-if="item.status === 'pending'" class="card__status"></div>
+              <a v-else class="">
+                <div class="card__status--paid d-flex justify-content-center align-items-center">
+                  <img src="../assets/paid.svg" />
+                </div>
+              </a>
+              <input v-if="item.status === 'pending'" class="card__title--input mt-2" v-model="item.title" />
+              <p v-else class="edit__title--paid mt-2">{{ item.title }}</p>
 
-              <input
-                class="card__info mt-2"
-                type="number"
-                min="0"
-                :max="RECEIVABLE"
-                minlength="1"
-                maxlength="4"
-                step="0.01"
-                v-model="item.toBePaid"
-              />
-              <div>
-                <button class="btn--addPayment--first" @click="decreasePercentage(item, index)">-</button>
+              <div class="position-relative d-flex mt-2">
+                <input
+                  v-if="item.status === 'pending'"
+                  class="edit__info--input"
+                  type="number"
+                  min="0"
+                  :max="RECEIVABLE"
+                  minlength="1"
+                  maxlength="4"
+                  v-model="item.toBePaid"
+                />
+                <p class="edit__info--paid" v-else>{{ item.toBePaid }} {{ CURRENCY }}</p>
+                <span v-if="item.status === 'pending'" class="edit__info__currency" id="basic-addon1">{{
+                  CURRENCY
+                }}</span>
+              </div>
+              <div class="edit__info__percerntage mt-2">
+                <button
+                  v-if="item.status === 'pending'"
+                  class="btn--addPayment--percentage"
+                  @click="decreasePercentage(item, index)"
+                >
+                  -
+                </button>
 
                 <span>{{ item.percentage }}%</span>
-                <button class="btn--addPayment--first" @click="increasePercentage(item, index)">+</button>
+                <button
+                  v-if="item.status === 'pending'"
+                  class="btn--addPayment--percentage"
+                  @click="increasePercentage(item, index)"
+                >
+                  +
+                </button>
               </div>
-              <p class="payments__info__receivable">Vence</p>
-              <p class="card__date mt-1"><img src="../assets/calendar.svg" alt="" /> {{ item.date }}</p>
+              <div class="edit__date">
+                <p
+                  v-if="item.status === 'pending'"
+                  class="card__date__expiration card__date__expiration__color align-self-start"
+                >
+                  Vence
+                </p>
+                <p v-else class="card__date__expiration card__date__paid align-self-start">Pagado</p>
+                <p :class="[item.status === 'paid' ? 'card__date__paid' : '', 'card__date mt-1 align-self-start']">
+                  <img src="../assets/calendar.svg" alt="" /> {{ item.date }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -148,13 +179,13 @@ export default {
     };
   },
   computed: {
-    lastIndex: function () {
+    lastIndex() {
       let lastIndex = this.db[this.db.length - 1];
       lastIndex = this.db.indexOf(lastIndex);
 
       return lastIndex;
     },
-    receivableValidator: function () {
+    receivableValidator() {
       let acum = 0;
       this.db.forEach((item) => {
         acum += item.toBePaid;
@@ -183,12 +214,24 @@ export default {
       return total;
     },
 
-    addPayment() {
+    addPayment(index) {
       this.isEditing();
+      console.log(index);
 
+      this.previousPayment = this.db[index];
+      if (index === 0) {
+        this.previousPayment = this.db[index];
+        if (this.previousPayment.status === 'paid') {
+          this.previousPayment = this.db[index + 1];
+        }
+      } else if (this.previousPayment.status === 'paid') {
+        console.log('entreee');
+        this.previousPayment = this.db[index + 1];
+      } else {
+        this.previousPayment = this.db[index];
+      }
       let date = this.parseDateToSpa();
-      this.previousPayment = this.db[this.db.length - 1];
-
+      console.log(this.previousPayment);
       this.newPayment = {
         id: this.db.length,
         title: 'Nuevo',
@@ -201,13 +244,13 @@ export default {
       this.previousPayment.toBePaid = this.rounded(this.previousPayment.toBePaid);
       this.previousPayment.percentage /= 2;
       this.db.push(this.newPayment);
-
+      this.newPayment = {};
+      this.previousPayment = {};
       return this.previousPayment;
     },
 
     savePayment() {
       this.editing = false;
-      this.newPayment = {};
     },
 
     increasePercentage(item, index) {
@@ -275,16 +318,21 @@ export default {
     },
     // Listening emits
     onDeletePayment(paymentToDelete) {
-      let { payment, index } = paymentToDelete;
+      let { payment } = paymentToDelete;
+      let deleteValidator = this.RECEIVABLE - payment.toBePaid;
+      if (deleteValidator > 0) {
+        console.log('entre');
+        let { payment, index } = paymentToDelete;
+        let newDb = this.db.filter((item) => item !== payment);
 
-      let newDb = this.db.filter((item) => item !== payment);
+        let indexToDelete = index === 0 ? index + 1 : index - 1;
 
-      let indexToDelete = index === 0 ? index + 1 : index - 1;
-
-      this.db[indexToDelete].percentage += this.db[index].percentage;
-      this.db[indexToDelete].toBePaid += this.db[index].toBePaid;
-
-      this.db = newDb;
+        this.db[indexToDelete].percentage += this.db[index].percentage;
+        this.db[indexToDelete].toBePaid += this.db[index].toBePaid;
+        this.db = newDb;
+        return;
+      }
+      return alert('No puedes eliminar el ultimo pago porque aun queda deuda pendiente');
     },
     onPaymentPaid(dataPaymentPaid) {
       let { index } = dataPaymentPaid;
@@ -312,9 +360,12 @@ main {
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0px 1px 0px #e2e8f0;
+  width: 848px;
 }
 .payments__info {
+  max-height: 76px;
   border-bottom: 1px solid #f1f5f9;
+  padding: 21px 24px;
 }
 .payments__info__title {
   color: #3460dc;
@@ -326,9 +377,7 @@ main {
   font-weight: 400;
   color: #94a3b8;
 }
-input {
-  width: 90px;
-}
+
 .payments__info__amount {
   line-height: 34px;
   font-weight: 700;
@@ -336,6 +385,13 @@ input {
 
 .card__status {
   border: 3px solid #1d4ed8;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+}
+.card__status--paid {
+  border: 3px solid #10b981;
+  background-color: #10b981;
   border-radius: 50%;
   width: 48px;
   height: 48px;
@@ -350,20 +406,98 @@ input {
   font-size: 1.15rem;
   font-weight: 700;
 }
-.card__info {
+.card__title--input {
+  font-size: 1.15rem;
+  font-weight: 700;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  height: 28px;
+  width: 120px;
+  padding-left: 4px;
+  line-height: 28px;
+}
+.edit__title--paid {
+  font-size: 1.15rem;
+  font-weight: 700;
+  height: 28px;
+  width: 120px;
+  padding-left: 4px;
+  line-height: 28px;
+}
+
+.edit__info--input {
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  height: 20px;
+  width: 120px;
+  padding-left: 4px;
+  line-height: 20px;
+}
+.edit__info--paid {
+  font-size: 0.875rem;
+  font-weight: 700;
+
+  height: 20px;
+  width: 120px;
+  padding-left: 4px;
+  line-height: 20px;
+}
+.edit__info__currency {
+  font-size: 0.875rem;
+  position: absolute;
+  font-weight: 600px;
+  right: 20px;
+  color: #94a3b8;
+}
+
+.card__info,
+.edit__info--input {
   font-size: 0.8rem;
+}
+.edit__info__percerntage {
+  width: 120px;
 }
 .card__info--receivable {
   font-weight: 700;
 }
 .card__date {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
+}
+.card__date__paid {
+  color: #059669;
+}
+.card__date__expiration {
+  line-height: 20px;
+  font-weight: 400;
+
+  text-align: start;
+  font-size: 0.875rem;
+  margin-top: 10px;
+}
+.card__date__expiration__color {
+  color: #94a3b8;
+}
+.card__date img {
+  position: relative;
+  bottom: 2px;
+}
+.edit__date {
+  width: 120px;
 }
 .payments__box {
   overflow: auto;
+  padding: 32px 24px 34px 29px;
 }
-.payments__card {
-  min-width: 17.5%;
+
+.payments__card__box {
+  /* width: 120px; */
+  height: 137px;
+}
+.edit__card {
+  width: 120px;
+  height: 218px;
 }
 
 ::-webkit-scrollbar {
@@ -393,18 +527,17 @@ input {
   font-size: 1.3rem;
   font-weight: 700;
 }
-.btn--addPayment--first {
-  opacity: 1;
+.btn--addPayment--percentage {
   height: 24px;
   width: 24px;
-  background-color: #e2e8f0;
+  background-color: #f8fafc;
   border-radius: 50%;
   border: none;
-  color: #1d4ed8;
+  color: #3460dc;
   font-size: 1.1rem;
   font-weight: 700;
 }
-.btn--addPayment--first:hover,
+.btn--addPayment--percentage:hover,
 .btn--addPayment:hover {
   opacity: 1;
 }
@@ -426,4 +559,38 @@ input {
   font-weight: 600;
   height: 34px;
 }
+
+.lineaContainer {
+  position: relative;
+  right: -28px;
+  width: 100px;
+  height: 22px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  color: var(--border-light);
+  z-index: 0;
+}
+
+/* .lineai {
+  height: 5px;
+  background-color: blue;
+  width: 150px;
+  position: absolute;
+  top: 50%;
+  right: -1px;
+}
+.linead {
+  height: 10px;
+  background-color: #059669;
+  width: 150px;
+  position: absolute;
+  top: 50%;
+  left: -2px;
+}
+.letra {
+  background-color: white;
+  z-index: 200;
+} */
 </style>

@@ -73,6 +73,7 @@ export default {
         let dataPaymentPaid = this.paymentToEdit;
         console.log(dataPaymentPaid);
         this.$emit('paymentPaid', dataPaymentPaid);
+        this.status = 'pending';
       }
     },
     getDate() {
