@@ -26,8 +26,8 @@
                 <!-- Button modal -->
 
                 <div>
-                  <!-- <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div> -->
-                  <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div>
+                  <!-- <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div>
+                  <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div> -->
                   <a
                     v-if="item.status === 'pending'"
                     class="d-flex letra"
@@ -45,8 +45,7 @@
                       <img v-else src="../assets/paid.svg" />
                     </div>
                   </a>
-                  linea
-                  <!-- <div v-if="index !== lastIndex" class="position-relative"><div class="linead"></div></div> -->
+                  <div class="lineaC"><div class="linead"></div></div>
                 </div>
                 <!-- BOTON PAGADO -->
                 <a v-if="item.status === 'paid'" class="">
@@ -61,13 +60,16 @@
                   }})%
                 </p>
                 <p class="card__date">
-                  <span class="card__date__paid" v-if="item.status === 'paid'">Pagado {{ item.date }}</span>
+                  <span class="card__date__paid" v-if="item.status === 'paid'">Pagado </span>
+                  <span :class="item.status === 'paid' ? 'card__date__paid' : 'card__date'">{{ item.date }}</span>
                 </p>
               </div>
             </div>
 
             <div
-              v-if="(db.length == 1 && item.status === 'pending') || item.status === 'pending'"
+              v-if="
+                (db.length === 1 && item.status === 'pending') || (item.status === 'pending' && index !== lastIndex)
+              "
               class="payments__box__addPayment mt-2"
             >
               <button class="btn--addPayment" @click="addPayment(index)">+</button>
@@ -107,10 +109,8 @@
                   v-if="item.status === 'pending'"
                   class="edit__info--input"
                   type="number"
-                  min="0"
+                  readonly
                   :max="RECEIVABLE"
-                  minlength="1"
-                  maxlength="4"
                   v-model="item.toBePaid"
                 />
                 <p class="edit__info--paid" v-else>{{ item.toBePaid }} {{ CURRENCY }}</p>
@@ -160,7 +160,11 @@
 import PaymentsModal from '@/components/PaymentsModal.vue';
 const CURRENCY = 'UF'; //Divisa
 const RECEIVABLE = 182; //Por cobrar
-const datos = [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' }];
+const datos = [
+  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
+  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
+  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
+];
 export default {
   name: 'PaymentsApp',
   components: {
@@ -170,6 +174,7 @@ export default {
     return {
       CURRENCY,
       RECEIVABLE,
+      firstRECEIVABLE: RECEIVABLE,
       previousPayment: {},
       newPayment: {},
       db: datos, //Cuotas
@@ -182,19 +187,26 @@ export default {
     lastIndex() {
       let lastIndex = this.db[this.db.length - 1];
       lastIndex = this.db.indexOf(lastIndex);
+      console.log(lastIndex);
 
       return lastIndex;
-    },
-    receivableValidator() {
-      let acum = 0;
-      this.db.forEach((item) => {
-        acum += item.toBePaid;
-      });
-      return acum;
     },
   },
 
   methods: {
+    receivableValidator() {
+      let acum = 0;
+      this.db.forEach((item) => {
+        if (item.status === 'pending') {
+          acum = Number(acum) + Number(item.toBePaid);
+        }
+        acum = Number(acum).toFixed(1);
+      });
+
+      let result = acum - this.RECEIVABLE;
+
+      return result;
+    },
     parseDateToSpa() {
       let date = new Date();
       const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', ' Dic'];
@@ -216,7 +228,6 @@ export default {
 
     addPayment(index) {
       this.isEditing();
-      console.log(index);
 
       this.previousPayment = this.db[index];
       if (index === 0) {
@@ -225,13 +236,11 @@ export default {
           this.previousPayment = this.db[index + 1];
         }
       } else if (this.previousPayment.status === 'paid') {
-        console.log('entreee');
         this.previousPayment = this.db[index + 1];
       } else {
         this.previousPayment = this.db[index];
       }
       let date = this.parseDateToSpa();
-      console.log(this.previousPayment);
       this.newPayment = {
         id: this.db.length,
         title: 'Nuevo',
@@ -250,17 +259,28 @@ export default {
     },
 
     savePayment() {
-      this.editing = false;
+      if (this.receivableValidator() === 0) {
+        this.editing = false;
+      } else {
+        alert(`ERROR: La suma de los pagos debe ser igual a la deuda: ${this.RECEIVABLE}`);
+      }
     },
 
     increasePercentage(item, index) {
       if (this.incrementValidator(item, index)) {
+        let clickedPayment = this.db[index];
+        let previousPayment = this.db[index - 1];
+
         if (index === 0) {
           this.db[index + 1].percentage--;
-          item.percentage++;
+          clickedPayment.percentage++;
+          clickedPayment.toBePaid = this.rounded((clickedPayment.percentage * this.firstRECEIVABLE) / 100);
+          this.db[index + 1].toBePaid = this.rounded((this.db[index + 1].percentage * this.firstRECEIVABLE) / 100);
         } else {
-          this.db[index - 1].percentage--;
-          item.percentage++;
+          previousPayment.percentage--;
+          clickedPayment.percentage++;
+          clickedPayment.toBePaid = this.rounded((clickedPayment.percentage * this.firstRECEIVABLE) / 100);
+          previousPayment.toBePaid = this.rounded((previousPayment.percentage * this.firstRECEIVABLE) / 100);
         }
       }
 
@@ -270,13 +290,15 @@ export default {
       if (this.decreaseValidator(item, index)) {
         if (index === 0) {
           this.db[index + 1].percentage++;
+          this.db[index + 1].toBePaid = (this.db[index + 1].percentage * this.firstRECEIVABLE) / 100;
           item.percentage--;
+          item.toBePaid = (item.percentage * this.firstRECEIVABLE) / 100;
         } else {
           this.db[index - 1].percentage++;
           item.percentage--;
+          item.toBePaid = (item.percentage * this.firstRECEIVABLE) / 100;
         }
       }
-      console.log(index);
 
       return item;
     },
@@ -284,10 +306,8 @@ export default {
       let { percentage } = index === 0 ? this.db[index + 1] : this.db[index - 1];
 
       if (percentage - 1 < 0) {
-        console.log('falso');
         return false;
       } else {
-        console.log('true');
         return true;
       }
     },
@@ -295,10 +315,8 @@ export default {
       let { percentage } = index === 0 ? this.db[index + 1] : this.db[index];
 
       if (percentage - 1 < 0) {
-        console.log('falso');
         return false;
       } else {
-        console.log('true');
         return true;
       }
     },
@@ -319,9 +337,8 @@ export default {
     // Listening emits
     onDeletePayment(paymentToDelete) {
       let { payment } = paymentToDelete;
-      let deleteValidator = this.RECEIVABLE - payment.toBePaid;
+      let deleteValidator = this.rounded(this.RECEIVABLE - payment.toBePaid);
       if (deleteValidator > 0) {
-        console.log('entre');
         let { payment, index } = paymentToDelete;
         let newDb = this.db.filter((item) => item !== payment);
 
@@ -338,7 +355,7 @@ export default {
       let { index } = dataPaymentPaid;
 
       this.db[index].status = 'paid';
-      this.RECEIVABLE -= this.db[index].toBePaid;
+      this.RECEIVABLE = this.rounded(this.RECEIVABLE - this.db[index].toBePaid);
     },
   },
   async beforeMount() {
@@ -452,7 +469,10 @@ main {
   color: #94a3b8;
 }
 
-.card__info,
+.card__info {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
 .edit__info--input {
   font-size: 0.8rem;
 }
@@ -560,7 +580,7 @@ main {
   height: 34px;
 }
 
-.lineaContainer {
+.lineaC {
   position: relative;
   right: -28px;
   width: 100px;
@@ -569,8 +589,14 @@ main {
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  color: var(--border-light);
+  color: red;
   z-index: 0;
+}
+.linead {
+  position: absolute;
+  height: 1px;
+  width: 100%;
+  background-color: blue;
 }
 
 /* .lineai {

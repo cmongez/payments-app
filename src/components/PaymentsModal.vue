@@ -65,13 +65,12 @@ export default {
   },
   methods: {
     deletePayment(paymentToDelete) {
-      console.log(paymentToDelete);
       this.$emit('deletePayment', paymentToDelete);
     },
     changeStatus() {
       if (this.status === 'paid') {
         let dataPaymentPaid = this.paymentToEdit;
-        console.log(dataPaymentPaid);
+
         this.$emit('paymentPaid', dataPaymentPaid);
         this.status = 'pending';
       }
