@@ -27,8 +27,8 @@
                 <PaymentsModal @deletePayment="onDeletePayment" :paymentToEdit="paymentToEdit" />
 
                 <a class="" @click="editPayment(item, index)" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                  <div class="card__state d-flex justify-content-center align-items-center">
-                    <img class="card__state__pencil" src="../assets/pencil.svg" alt="" />
+                  <div class="card__status d-flex justify-content-center align-items-center">
+                    <img class="card__status__pencil" src="../assets/pencil.svg" alt="" />
                   </div>
                 </a>
                 <p class="card__title mt-2">{{ item.title }}</p>
@@ -37,7 +37,7 @@
                     item.percentage
                   }})%
                 </p>
-                <p class="card__date mt-2">22 Ene, 2022</p>
+                <p class="card__date mt-2">{{ item.date }}</p>
               </div>
             </div>
 
@@ -69,10 +69,19 @@
             class="payments__card d-flex justify-content-center align-items-start"
           >
             <div class="d-flex justify-content-center align-items-center flex-column">
-              <div class="card__state"></div>
+              <div class="card__status"></div>
               <input class="card__title mt-2" v-model="item.title" />
 
-              <input class="card__info mt-2" maxlength="4" v-model="item.toBePaid" />
+              <input
+                class="card__info mt-2"
+                type="number"
+                min="0"
+                :max="RECEIVABLE"
+                minlength="1"
+                maxlength="4"
+                step="0.01"
+                v-model="item.toBePaid"
+              />
               <div>
                 <button class="btn--addPayment--first" @click="decreasePercentage(item, index)">-</button>
 
@@ -80,7 +89,7 @@
                 <button class="btn--addPayment--first" @click="increasePercentage(item, index)">+</button>
               </div>
               <p class="payments__info__receivable">Vence</p>
-              <p class="card__date mt-1"><img src="../assets/calendar.svg" alt="" /> 22 Ene, 2022</p>
+              <p class="card__date mt-1"><img src="../assets/calendar.svg" alt="" /> {{ item.date }}</p>
             </div>
           </div>
         </div>
@@ -105,9 +114,10 @@ export default {
       RECEIVABLE,
       previousPayment: {},
       newPayment: {},
-      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, state: 'pending' }], //Cuotas
+      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: this.firstDate }], //Cuotas
       paymentToEdit: {},
       editing: false,
+      firstDate: '',
     };
   },
   computed: {
@@ -130,6 +140,18 @@ export default {
   },
 
   methods: {
+    parseDateToSpa() {
+      let date = new Date();
+      const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', ' Dic'];
+      this.firstDate = date.toLocaleString();
+      let day = date.getDay();
+      let month = date.getMonth();
+      let year = date.getFullYear();
+      let imprimir = `${day} ${MONTHS[month]}, ${year} `;
+      console.log(imprimir);
+      return imprimir;
+      // 22 Ene, 2022
+    },
     rounded(num) {
       let total = Number(num.toFixed(1));
 
@@ -138,6 +160,8 @@ export default {
 
     addPayment() {
       this.isEditing();
+
+      let date = new Date().toLocaleDateString();
 
       this.previousPayment = this.db[this.db.length - 1];
 
@@ -148,7 +172,8 @@ export default {
         title: 'Pago Final',
         toBePaid: this.rounded(this.previousPayment.toBePaid / 2),
         percentage: this.previousPayment.percentage / 2,
-        state: 'pending',
+        status: 'pending',
+        date: date,
       };
       this.previousPayment.toBePaid -= this.newPayment.toBePaid;
       this.previousPayment.toBePaid = this.rounded(this.previousPayment.toBePaid);
@@ -227,7 +252,7 @@ export default {
       return this.db;
     },
     editPayment(payment, index) {
-      this.paymentToEdit = { payment, index };
+      this.paymentToEdit = { payment, index, length: this.db.length, status: payment.status };
       console.log(this.paymentToEdit);
     },
     // Listening emits
@@ -236,10 +261,18 @@ export default {
 
       let newDb = this.db.filter((item) => item !== payment);
 
-      this.db[index - 1].percentage += this.db[index].percentage;
-      this.db[index - 1].toBePaid += this.db[index].toBePaid;
+      let indexToDelete = index === 0 ? index + 1 : index - 1;
+
+      this.db[indexToDelete].percentage += this.db[index].percentage;
+      this.db[indexToDelete].toBePaid += this.db[index].toBePaid;
+      console.log(typeof this.db[indexToDelete].toBePaid);
+      console.log(this.db);
       this.db = newDb;
+      console.log(this.db);
     },
+  },
+  async created() {
+    await this.parseDateToSpa();
   },
 };
 </script>
@@ -279,16 +312,16 @@ input {
   font-weight: 700;
 }
 
-.card__state {
+.card__status {
   border: 3px solid #1d4ed8;
   border-radius: 50%;
   width: 48px;
   height: 48px;
 }
-.card__state__pencil {
+.card__status__pencil {
   opacity: 0;
 }
-.card__state__pencil:hover {
+.card__status__pencil:hover {
   opacity: 1;
 }
 .card__title {

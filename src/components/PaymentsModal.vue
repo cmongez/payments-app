@@ -8,16 +8,16 @@
         </div>
         <div class="modal-body p-0 pt-3">
           <p>Selecciona el estado en que se encuentra el pago</p>
-          <p class="modal-body-state p-0 pt-2">Estado</p>
+          <p class="modal-body-status p-0 pt-2">Estado</p>
           <div class="content-select">
-            <select class="modal-select py-2 ps-2">
-              <option disabled value="">Seleccione un elemento</option>
-              <option>Por pagar</option>
-              <option>Pagado</option>
+            <select v-model="status" class="modal-select py-2 ps-2">
+              <option value="pending">Por pagar</option>
+              <option value="paid">Pagado</option>
             </select>
+            <p>{{ getStatus }}</p>
             <img class="modal-arrow" src="../assets/arrowSelect.svg" />
           </div>
-          <p class="modal-body-state p-0 pt-2">Fecha de pago</p>
+          <p class="modal-body-status p-0 pt-2">Fecha de pago</p>
           <div class="content-select">
             <select class="modal-select py-2 ps-2">
               <option>22 de enero, 2022</option>
@@ -27,7 +27,13 @@
         </div>
 
         <div class="modal-footer">
-          <img @click="deletePayment(paymentToEdit)" data-bs-dismiss="modal" src="../assets/delete.svg" alt="" />
+          <img
+            v-if="paymentToEdit.length > 1"
+            @click="deletePayment(paymentToEdit)"
+            data-bs-dismiss="modal"
+            src="../assets/delete.svg"
+            alt=""
+          />
           <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Guardar</button>
         </div>
       </div>
@@ -44,7 +50,14 @@ export default {
   },
   name: 'PaymentsModal',
   data() {
-    return {};
+    return {
+      status: 'pending',
+    };
+  },
+  computed: {
+    getStatus() {
+      return this.status;
+    },
   },
   methods: {
     deletePayment(paymentToDelete) {
@@ -77,13 +90,13 @@ export default {
   letter-spacing: -0.02em;
 }
 .modal-body,
-.modal-body-state {
+.modal-body-status {
   font-style: normal;
   font-weight: 400;
   font-size: 16px;
   line-height: 24px;
 }
-.modal-body-state {
+.modal-body-status {
   font-family: 'Inter';
   color: #475569;
   font-size: 14px;
