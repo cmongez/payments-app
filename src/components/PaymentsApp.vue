@@ -20,15 +20,43 @@
         </div>
         <div class="flex-nowrap payments__box d-flex px-4 py-4 mx-3">
           <!-- CARDS -->
-          <template v-for="(item, index) in db">
-            <div :key="index" class="payments__card d-flex position-relative">
+          <div v-for="(item, index) in db" :key="index">
+            <div class="payments__card d-flex position-relative">
               <div class="payments__card__box d-flex justify-content-center align-items-center flex-column">
                 <!-- Button modal -->
-                <PaymentsModal @deletePayment="onDeletePayment" :paymentToEdit="paymentToEdit" />
+                <PaymentsModal
+                  @paymentPaid="onPaymentPaid"
+                  @deletePayment="onDeletePayment"
+                  :paymentToEdit="paymentToEdit"
+                />
 
-                <a class="" @click="editPayment(item, index)" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <a
+                  v-if="item.status === 'pending'"
+                  class=""
+                  @click="editPayment(item, index)"
+                  data-bs-toggle="modal"
+                  data-bs-target="#exampleModal"
+                >
                   <div class="card__status d-flex justify-content-center align-items-center">
-                    <img class="card__status__pencil" src="../assets/pencil.svg" alt="" />
+                    <img
+                      v-if="item.status === 'pending'"
+                      class="card__status__pencil"
+                      src="../assets/pencil.svg"
+                      alt=""
+                    />
+                    <img v-else src="../assets/paid.svg" />
+                  </div>
+                </a>
+                <!-- BOTON PAGADO -->
+                <a
+                  v-if="item.status === 'paid'"
+                  class=""
+                  @click="editPayment(item, index)"
+                  data-bs-toggle="modal"
+                  data-bs-target="#exampleModal"
+                >
+                  <div class="card__status d-flex justify-content-center align-items-center">
+                    <img src="../assets/paid.svg" />
                   </div>
                 </a>
                 <p class="card__title mt-2">{{ item.title }}</p>
@@ -37,15 +65,14 @@
                     item.percentage
                   }})%
                 </p>
-                <p class="card__date mt-2">{{ item.date }}</p>
+                <p class="card__date mt-2"><span v-if="item.status === 'paid'">Pagado</span> {{ item.date }}</p>
+              </div>
+              <div v-if="db.length == 1 || index != lastIndex" class="payments__box__addPayment mt-1">
+                <button class="btn--addPayment" @click="addPayment(index)">+</button>
+                <p>Agregar Pago</p>
               </div>
             </div>
-
-            <div v-if="db.length == 1 || index != lastIndex" class="payments__box__addPayment mt-1">
-              <button class="btn--addPayment" @click="addPayment">+</button>
-              <p>Agregar Pago</p>
-            </div>
-          </template>
+          </div>
         </div>
       </div>
       <!-- COMPONENTE EDITAR -->
@@ -102,7 +129,7 @@
 import PaymentsModal from '@/components/PaymentsModal.vue';
 const CURRENCY = 'UF'; //Divisa
 const RECEIVABLE = 182; //Por cobrar
-
+const datos = [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' }];
 export default {
   name: 'PaymentsApp',
   components: {
@@ -114,10 +141,10 @@ export default {
       RECEIVABLE,
       previousPayment: {},
       newPayment: {},
-      db: [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: this.firstDate }], //Cuotas
+      db: datos, //Cuotas
       paymentToEdit: {},
       editing: false,
-      firstDate: '',
+      currentDay: '',
     };
   },
   computed: {
@@ -129,12 +156,9 @@ export default {
     },
     receivableValidator: function () {
       let acum = 0;
-      console.log(this.db);
       this.db.forEach((item) => {
         acum += item.toBePaid;
-        console.log('pe', item.toBePaid);
       });
-      console.log('acum', acum);
       return acum;
     },
   },
@@ -143,13 +167,14 @@ export default {
     parseDateToSpa() {
       let date = new Date();
       const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', ' Dic'];
-      this.firstDate = date.toLocaleString();
-      let day = date.getDay();
+
+      let day = date.getDate();
       let month = date.getMonth();
       let year = date.getFullYear();
-      let imprimir = `${day} ${MONTHS[month]}, ${year} `;
-      console.log(imprimir);
-      return imprimir;
+      let currentDay = `${day} ${MONTHS[month]}, ${year} `;
+
+      this.currentDay = currentDay;
+      return currentDay;
       // 22 Ene, 2022
     },
     rounded(num) {
@@ -161,15 +186,12 @@ export default {
     addPayment() {
       this.isEditing();
 
-      let date = new Date().toLocaleDateString();
-
+      let date = this.parseDateToSpa();
       this.previousPayment = this.db[this.db.length - 1];
-
-      this.previousPayment.title == 'Anticipo' ? this.previousPayment.title : (this.previousPayment.title = 'Nuevo');
 
       this.newPayment = {
         id: this.db.length,
-        title: 'Pago Final',
+        title: 'Nuevo',
         toBePaid: this.rounded(this.previousPayment.toBePaid / 2),
         percentage: this.previousPayment.percentage / 2,
         status: 'pending',
@@ -189,7 +211,6 @@ export default {
     },
 
     increasePercentage(item, index) {
-      console.log(item, index);
       if (this.incrementValidator(item, index)) {
         if (index === 0) {
           this.db[index + 1].percentage--;
@@ -203,9 +224,7 @@ export default {
       return item;
     },
     decreasePercentage(item, index) {
-      console.log(item, index);
       if (this.decreaseValidator(item, index)) {
-        console.log('valide');
         if (index === 0) {
           this.db[index + 1].percentage++;
           item.percentage--;
@@ -253,7 +272,6 @@ export default {
     },
     editPayment(payment, index) {
       this.paymentToEdit = { payment, index, length: this.db.length, status: payment.status };
-      console.log(this.paymentToEdit);
     },
     // Listening emits
     onDeletePayment(paymentToDelete) {
@@ -265,13 +283,17 @@ export default {
 
       this.db[indexToDelete].percentage += this.db[index].percentage;
       this.db[indexToDelete].toBePaid += this.db[index].toBePaid;
-      console.log(typeof this.db[indexToDelete].toBePaid);
-      console.log(this.db);
+
       this.db = newDb;
-      console.log(this.db);
+    },
+    onPaymentPaid(dataPaymentPaid) {
+      let { index } = dataPaymentPaid;
+
+      this.db[index].status = 'paid';
+      this.RECEIVABLE -= this.db[index].toBePaid;
     },
   },
-  async created() {
+  async beforeMount() {
     await this.parseDateToSpa();
   },
 };

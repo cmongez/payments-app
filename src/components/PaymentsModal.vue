@@ -14,15 +14,15 @@
               <option value="pending">Por pagar</option>
               <option value="paid">Pagado</option>
             </select>
-            <p>{{ getStatus }}</p>
+
             <img class="modal-arrow" src="../assets/arrowSelect.svg" />
           </div>
-          <p class="modal-body-status p-0 pt-2">Fecha de pago</p>
-          <div class="content-select">
+          <p v-if="status != 'pending'" class="modal-body-status p-0 pt-2">Fecha de pago</p>
+          <div v-if="status != 'pending'" class="content-select">
             <select class="modal-select py-2 ps-2">
-              <option>22 de enero, 2022</option>
+              <option>{{ payday }}</option>
             </select>
-            <img class="modal-calendar" @click="deletePayment(paymentToEdit)" src="../assets/calendar-gray.svg" />
+            <img class="modal-calendar" src="../assets/calendar-gray.svg" />
           </div>
         </div>
 
@@ -34,7 +34,9 @@
             src="../assets/delete.svg"
             alt=""
           />
-          <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Guardar</button>
+          <button type="button" @click="changeStatus" class="btn btn--secondary" data-bs-dismiss="modal">
+            Guardar
+          </button>
         </div>
       </div>
     </div>
@@ -52,17 +54,31 @@ export default {
   data() {
     return {
       status: 'pending',
+      payday: '',
     };
   },
-  computed: {
-    getStatus() {
-      return this.status;
+  computed: {},
+  watch: {
+    status() {
+      this.getDate();
     },
   },
   methods: {
     deletePayment(paymentToDelete) {
       console.log(paymentToDelete);
       this.$emit('deletePayment', paymentToDelete);
+    },
+    changeStatus() {
+      if (this.status === 'paid') {
+        let dataPaymentPaid = this.paymentToEdit;
+        console.log(dataPaymentPaid);
+        this.$emit('paymentPaid', dataPaymentPaid);
+      }
+    },
+    getDate() {
+      let currentDay = new Date().toLocaleDateString();
+      this.payday = currentDay;
+      return currentDay;
     },
   },
 };
