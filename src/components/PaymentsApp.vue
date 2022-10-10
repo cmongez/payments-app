@@ -2,7 +2,7 @@
   <main>
     <div class="container-fluid p-5">
       <!-- Vista inicial -->
-      <!-- Vista inicial -->
+      <!-- Vista inicial, al ser una aplicacion sencilla y no poder usar Vuex decidi tener la vista inicial y la vista de edicion en el mismo componente -->
       <div v-if="!editing" class="payments container-fluid m-0 p-0">
         <div class="payments__info d-flex justify-content-between align-items-center">
           <div class="d-flex justify-content-center align-items-center">
@@ -20,28 +20,43 @@
           </div>
         </div>
         <!-- Modal -->
-        <!-- Modal -->
+        <!-- Modal para cambiar el estado de un pago recibe como props un objeto con la data necesaria y devuelve emits con los cambios realizados en el componente hijo-->
+
         <PaymentsModal @paymentPaid="onPaymentPaid" @deletePayment="onDeletePayment" :paymentToEdit="paymentToEdit" />
         <div class="flex-nowrap row payments__box d-flex">
           <!-- CARDS -->
-          <!-- CARDS -->
+          <!-- CARDS pintadas de manera reactiva -->
           <div class="d-flex col-3" v-for="(item, index) in db" :key="index">
             <div class="payments__card d-flex">
               <div class="payments__card__box d-flex justify-content-center align-items-center flex-column">
                 <!-- Button modal -->
                 <!-- Button modal -->
                 <div class="position-relative d-flex">
+                  <!-- Evito la modificacion del estado de un pago una vez pagado -->
                   <a
+                    :disabled="item.status === 'paid'"
                     :class="[item.status === 'paid' ? 'visually-hidden' : '', 'btnModal d-flex justify-content-center']"
                     @click="editPayment(item, index)"
                     data-bs-toggle="modal"
-                    data-bs-target="#exampleModal"
+                    :data-bs-target="getNextPayment === index ? '#exampleModal' : 'disabled'"
                   >
-                    <div class="card__status position-relative d-flex justify-content-center align-items-center">
-                      <img class="card__status__pencil" src="../assets/pencil.svg" alt="" />
+                    <!-- Evito que se hagan pagos sin haber realizado en primero pago.  -->
+                    <div
+                      :class="[
+                        getNextPayment === index ? 'card__status' : 'card__status--gray',
+                        'position-relative d-flex justify-content-center align-items-center',
+                      ]"
+                    >
+                      <img
+                        v-if="getNextPayment === index"
+                        class="card__status__pencil"
+                        src="../assets/pencil.svg"
+                        alt=""
+                      />
                     </div>
                   </a>
                   <div class="d-flex align-items-center">
+                    <!-- Boton añadir pago y estado de la linea -->
                     <div
                       v-if="
                         (index === 0 && item.status === 'pending') ||
@@ -54,10 +69,7 @@
                       ]"
                     >
                       <div :class="item.status === 'paid' ? 'line-paid linea-r' : 'line-not-paid linea-r'"></div>
-                      <!-- v-if="
-                          (db.length === 1 && item.status === 'pending') ||
-                          (item.status === 'pending' && index !== lastIndex)
-                        " AQUIIi -->
+
                       <div
                         v-if="
                           (index === 0 && item.status === 'pending') ||
@@ -75,7 +87,7 @@
                     </div>
                   </div>
                 </div>
-                <!-- BOTON PAGADO -->
+                <!-- Imagen pagado -->
                 <a v-if="item.status === 'paid'" class="btnModal d-flex justify-content-center">
                   <div class="card__status--paid d-flex justify-content-center align-items-center">
                     <img src="../assets/paid.svg" />
@@ -96,6 +108,7 @@
           </div>
         </div>
       </div>
+      <!-- COMPONENTE EDITAR -->
       <!-- COMPONENTE EDITAR -->
       <div v-if="editing" class="payments container-fluid m-0 p-0">
         <div class="payments__info d-flex justify-content-between align-items-center p-4">
@@ -138,6 +151,7 @@
                 }}</span>
               </div>
               <div class="edit__info__percerntage mt-2">
+                <!-- Botones para incrementar y reducir los porcentajes -->
                 <button
                   v-if="item.status === 'pending'"
                   class="btn--addPayment--percentage"
@@ -162,6 +176,7 @@
                 >
                   Vence
                 </p>
+                <!-- Cambia el color de la fecha dependiendo del estado del pago -->
                 <p v-else class="card__date__expiration card__date__paid align-self-start">Pagado</p>
                 <p :class="[item.status === 'paid' ? 'card__date__paid' : '', 'card__date mt-1 align-self-start']">
                   <img src="../assets/calendar.svg" alt="" /> {{ item.date }}
@@ -179,7 +194,10 @@
 import PaymentsModal from '@/components/PaymentsModal.vue';
 const CURRENCY = 'UF'; //Divisa
 const RECEIVABLE = 182; //Por cobrar
-const datos = [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' }];
+//Data inicial simulada
+const initialData = [
+  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
+];
 export default {
   name: 'PaymentsApp',
   components: {
@@ -189,13 +207,14 @@ export default {
     return {
       CURRENCY,
       RECEIVABLE,
-      firstRECEIVABLE: RECEIVABLE,
+      firstRECEIVABLE: RECEIVABLE, //Guardamos cual era el monto de la deuda inicial.
       previousPayment: {},
       newPayment: {},
-      db: datos, //Cuotas
+      db: initialData, //Cuotas
       paymentToEdit: {},
       editing: false,
       currentDay: '',
+      nextPayment: 0,
     };
   },
 
@@ -203,26 +222,35 @@ export default {
     lastIndex() {
       let lastIndex = this.db[this.db.length - 1];
       lastIndex = this.db.indexOf(lastIndex);
-      console.log(lastIndex);
 
       return lastIndex;
+    },
+    getNextPayment() {
+      console.log(this.nextPayment);
+      return this.nextPayment;
     },
   },
 
   methods: {
+    // Validamos si la deuda sigue siendo correcta
     receivableValidator() {
-      let acum = 0;
+      let accum = 0;
       this.db.forEach((item) => {
         if (item.status === 'pending') {
-          acum = Number(acum) + Number(item.toBePaid);
+          accum = Number(accum) + Number(item.toBePaid);
         }
-        acum = Number(acum).toFixed(1);
+        accum = Number(accum).toFixed(1);
       });
 
-      let result = acum - this.RECEIVABLE;
+      let result = accum - this.RECEIVABLE;
 
       return result;
     },
+
+    //HELPERS
+
+    // Transformamos la fecha a nuestro formato español
+    // Se puede implementar vue2-datepicker para el calendario
     parseDateToSpa() {
       let date = new Date();
       const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', ' Dic'];
@@ -234,17 +262,20 @@ export default {
 
       this.currentDay = currentDay;
       return currentDay;
-      // 22 Ene, 2022
     },
+
     rounded(num) {
       let total = Number(num.toFixed(1));
 
       return total;
     },
 
+    //Crear un nuevo pago
     addPayment(index) {
+      //Cambiamos la vista inicial por la de edicion
       this.isEditing();
 
+      //Validamos la posicion del pago para dividir el pago anterior a la mitad como fue solicitado en la prueba
       this.previousPayment = this.db[index];
       if (index === 0) {
         this.previousPayment = this.db[index];
@@ -256,7 +287,10 @@ export default {
       } else {
         this.previousPayment = this.db[index];
       }
+      //Obtenemos la fecha en español
       let date = this.parseDateToSpa();
+
+      //Creamos el modelo del nuevo pago
       this.newPayment = {
         id: this.db.length,
         title: 'Nuevo',
@@ -265,16 +299,20 @@ export default {
         status: 'pending',
         date: date,
       };
+      //modificamos el pago anterior
       this.previousPayment.toBePaid -= this.newPayment.toBePaid;
       this.previousPayment.toBePaid = this.rounded(this.previousPayment.toBePaid);
       this.previousPayment.percentage /= 2;
       this.db.push(this.newPayment);
       this.newPayment = {};
       this.previousPayment = {};
-      return this.previousPayment;
     },
-
+    changeNextPayment() {
+      this.nextPayment++;
+      return this.nextPayment;
+    },
     savePayment() {
+      //Validamos que el monto de la deuda siga estando correcta
       if (this.receivableValidator() === 0) {
         this.editing = false;
       } else {
@@ -304,20 +342,25 @@ export default {
     },
     decreasePercentage(item, index) {
       if (this.decreaseValidator(item, index)) {
+        let clickedPayment = this.db[index];
+        let previousPayment = this.db[index - 1];
         if (index === 0) {
           this.db[index + 1].percentage++;
           this.db[index + 1].toBePaid = (this.db[index + 1].percentage * this.firstRECEIVABLE) / 100;
-          item.percentage--;
-          item.toBePaid = (item.percentage * this.firstRECEIVABLE) / 100;
+          clickedPayment.percentage--;
+          clickedPayment.toBePaid = (clickedPayment.percentage * this.firstRECEIVABLE) / 100;
         } else {
-          this.db[index - 1].percentage++;
-          item.percentage--;
-          item.toBePaid = (item.percentage * this.firstRECEIVABLE) / 100;
+          previousPayment.percentage++;
+          previousPayment.toBePaid = (previousPayment.percentage * this.firstRECEIVABLE) / 100;
+          clickedPayment.percentage--;
+          clickedPayment.toBePaid = (clickedPayment.percentage * this.firstRECEIVABLE) / 100;
         }
       }
 
       return item;
     },
+
+    //Manejadores de incremento y decremento en los porcentajes
     incrementValidator(item, index) {
       let { percentage } = index === 0 ? this.db[index + 1] : this.db[index - 1];
 
@@ -327,30 +370,32 @@ export default {
         return true;
       }
     },
-    decreaseValidator(item, index) {
-      let { percentage } = index === 0 ? this.db[index + 1] : this.db[index];
 
+    decreaseValidator(item, index) {
+      let { percentage } = this.db[index];
+      console.log(index);
+      console.log(percentage);
       if (percentage - 1 < 0) {
+        console.log('Prueba', percentage);
         return false;
       } else {
+        console.log('ture', percentage);
         return true;
       }
     },
+    //Cambia el estado del componente a editando o vista inicial.
     isEditing() {
       this.editing = true;
       return this.editing;
     },
-    delete(obj) {
-      let arrayNew = (this.db = this.db.filter((item) => {
-        item !== obj;
-      }));
-      this.db = arrayNew;
-      return this.db;
-    },
+
+    //Genera el objeto con la data que se le enviara al modal para la modificacion de un pago, se usan objetos literales.
     editPayment(payment, index) {
       this.paymentToEdit = { payment, index, length: this.db.length, status: payment.status };
     },
-    // Listening emits
+
+    // AQUI DEBERIAMOS EJECUTAR LOS VERBOS HTTPS (GET, POST, PUT, DELETE) dependiendo de la modificacion que querramos realizar.
+    // Escuchamos al emit para realizar la modificacion correspondiente a la data recibida.
     onDeletePayment(paymentToDelete) {
       let { payment } = paymentToDelete;
       let deleteValidator = this.rounded(this.RECEIVABLE - payment.toBePaid);
@@ -367,20 +412,29 @@ export default {
       }
       return alert('No puedes eliminar el ultimo pago porque aun queda deuda pendiente');
     },
+    //Cambiamos el estado de un pago a pagado.
     onPaymentPaid(dataPaymentPaid) {
       let { index } = dataPaymentPaid;
 
       this.db[index].status = 'paid';
       this.RECEIVABLE = this.rounded(this.RECEIVABLE - this.db[index].toBePaid);
+      this.nextPayment++;
     },
   },
+  //Obtenemos la fecha de hoy para trabajarla, esto es solo un simulacro para obetener una fecha falsa... deberia manejarse con vue2-datepicker
   async beforeMount() {
     await this.parseDateToSpa();
   },
+
+  //Se suele traer la data inicial mediante una peticion GET usando Fetch o Axios
+  // async created( ){
+  //this.getData()
+  // }
 };
 </script>
 
 <style scoped>
+/* Decidi utilizar la METODOLOGIA BEM para el manejo de las clases de CSS porque facilita utilizacion de SASS aunque para esta prueba no haya sido sugerido  */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
 main {
@@ -420,12 +474,20 @@ main {
 }
 
 .card__status {
-  background-color: #ffffff;
+  background-color: #f8fafc;
   border: 3px solid #1d4ed8;
   border-radius: 50%;
   width: 48px;
   height: 48px;
 }
+.card__status--gray {
+  background-color: #e2e8f0;
+  border: 3px solid #e2e8f0;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+}
+
 .card__status--paid {
   border: 3px solid #10b981;
   background-color: #10b981;
@@ -540,7 +602,7 @@ main {
 .payments__card__box {
   height: 137px;
 }
-
+/* barra :horizontal */
 ::-webkit-scrollbar {
   width: 80px; /* Tamaño del scroll en vertical */
   height: 8px; /* Tamaño del scroll en horizontal */
@@ -555,7 +617,7 @@ main {
   color: #64748b;
 }
 
-/* buttons */
+/* botones */
 
 .btn--addPayment {
   opacity: 1;
@@ -601,9 +663,10 @@ main {
   height: 34px;
 }
 
+/* Lineas */
 .line__container {
-  right: -127px;
-  width: 129px;
+  right: -139px;
+  width: 160px;
   height: 22px;
   display: flex;
   flex-direction: row;
@@ -613,8 +676,8 @@ main {
   z-index: 0;
 }
 .line__container--green {
-  right: -155px;
-  width: 130px;
+  right: -150px;
+  width: 148px;
   height: 22px;
   display: flex;
   flex-direction: row;
