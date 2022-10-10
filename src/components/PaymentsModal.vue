@@ -8,27 +8,35 @@
         </div>
         <div class="modal-body p-0 pt-3">
           <p>Selecciona el estado en que se encuentra el pago</p>
-          <p class="modal-body-state p-0 pt-2">Estado</p>
+          <p class="modal-body-status p-0 pt-2">Estado</p>
           <div class="content-select">
-            <select class="modal-select py-2 ps-2">
-              <option disabled value="">Seleccione un elemento</option>
-              <option>Por pagar</option>
-              <option>Pagado</option>
+            <select v-model="status" class="modal-select py-2 ps-2">
+              <option value="pending">Por pagar</option>
+              <option value="paid">Pagado</option>
             </select>
+
             <img class="modal-arrow" src="../assets/arrowSelect.svg" />
           </div>
-          <p class="modal-body-state p-0 pt-2">Fecha de pago</p>
-          <div class="content-select">
+          <p v-if="status != 'pending'" class="modal-body-status p-0 pt-2">Fecha de pago</p>
+          <div v-if="status != 'pending'" class="content-select">
             <select class="modal-select py-2 ps-2">
-              <option>22 de enero, 2022</option>
+              <option>{{ payday }}</option>
             </select>
-            <img class="modal-calendar" @click="deletePayment(paymentToEdit)" src="../assets/calendar-gray.svg" />
+            <img class="modal-calendar" src="../assets/calendar-gray.svg" />
           </div>
         </div>
 
         <div class="modal-footer">
-          <img @click="deletePayment(paymentToEdit)" data-bs-dismiss="modal" src="../assets/delete.svg" alt="" />
-          <button type="button" class="btn btn--secondary" data-bs-dismiss="modal">Guardar</button>
+          <img
+            v-if="paymentToEdit.length > 1"
+            @click="deletePayment(paymentToEdit)"
+            data-bs-dismiss="modal"
+            src="../assets/delete.svg"
+            alt=""
+          />
+          <button type="button" @click="changeStatus" class="btn btn--secondary" data-bs-dismiss="modal">
+            Guardar
+          </button>
         </div>
       </div>
     </div>
@@ -44,12 +52,33 @@ export default {
   },
   name: 'PaymentsModal',
   data() {
-    return {};
+    return {
+      status: 'pending',
+      payday: '',
+    };
+  },
+  computed: {},
+  watch: {
+    status() {
+      this.getDate();
+    },
   },
   methods: {
     deletePayment(paymentToDelete) {
-      console.log(paymentToDelete);
       this.$emit('deletePayment', paymentToDelete);
+    },
+    changeStatus() {
+      if (this.status === 'paid') {
+        let dataPaymentPaid = this.paymentToEdit;
+
+        this.$emit('paymentPaid', dataPaymentPaid);
+        this.status = 'pending';
+      }
+    },
+    getDate() {
+      let currentDay = new Date().toLocaleDateString();
+      this.payday = currentDay;
+      return currentDay;
     },
   },
 };
@@ -77,13 +106,13 @@ export default {
   letter-spacing: -0.02em;
 }
 .modal-body,
-.modal-body-state {
+.modal-body-status {
   font-style: normal;
   font-weight: 400;
   font-size: 16px;
   line-height: 24px;
 }
-.modal-body-state {
+.modal-body-status {
   font-family: 'Inter';
   color: #475569;
   font-size: 14px;
