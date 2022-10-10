@@ -1,6 +1,8 @@
 <template>
   <main>
     <div class="container-fluid p-5">
+      <!-- Vista inicial -->
+      <!-- Vista inicial -->
       <div v-if="!editing" class="payments container-fluid m-0 p-0">
         <div class="payments__info d-flex justify-content-between align-items-center">
           <div class="d-flex justify-content-center align-items-center">
@@ -17,38 +19,64 @@
             ><span class="payments__info__amount"> {{ this.RECEIVABLE }} {{ this.CURRENCY }}</span>
           </div>
         </div>
+        <!-- Modal -->
+        <!-- Modal -->
         <PaymentsModal @paymentPaid="onPaymentPaid" @deletePayment="onDeletePayment" :paymentToEdit="paymentToEdit" />
-        <div class="flex-nowrap payments__box d-flex justify-content-between">
+        <div class="flex-nowrap row payments__box d-flex">
           <!-- CARDS -->
-          <div class="d-flex" v-for="(item, index) in db" :key="index">
+          <!-- CARDS -->
+          <div class="d-flex col-3" v-for="(item, index) in db" :key="index">
             <div class="payments__card d-flex">
               <div class="payments__card__box d-flex justify-content-center align-items-center flex-column">
                 <!-- Button modal -->
-
-                <div>
-                  <!-- <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div>
-                  <div v-if="index !== 0" class="position-relative"><div class="lineai"></div></div> -->
+                <!-- Button modal -->
+                <div class="position-relative d-flex">
                   <a
-                    v-if="item.status === 'pending'"
-                    class="d-flex letra"
+                    :class="[item.status === 'paid' ? 'visually-hidden' : '', 'btnModal d-flex justify-content-center']"
                     @click="editPayment(item, index)"
                     data-bs-toggle="modal"
                     data-bs-target="#exampleModal"
                   >
                     <div class="card__status position-relative d-flex justify-content-center align-items-center">
-                      <img
-                        v-if="item.status === 'pending'"
-                        class="card__status__pencil"
-                        src="../assets/pencil.svg"
-                        alt=""
-                      />
-                      <img v-else src="../assets/paid.svg" />
+                      <img class="card__status__pencil" src="../assets/pencil.svg" alt="" />
                     </div>
                   </a>
-                  <div class="lineaC"><div class="linead"></div></div>
+                  <div class="d-flex align-items-center">
+                    <div
+                      v-if="
+                        (index === 0 && item.status === 'pending') ||
+                        (item.status === 'pending' && db[index - 1].status === 'paid') ||
+                        index !== lastIndex
+                      "
+                      :class="[
+                        item.status === 'pending' ? 'line__container' : 'line__container--green',
+                        'position-absolute',
+                      ]"
+                    >
+                      <div :class="item.status === 'paid' ? 'line-paid linea-r' : 'line-not-paid linea-r'"></div>
+                      <!-- v-if="
+                          (db.length === 1 && item.status === 'pending') ||
+                          (item.status === 'pending' && index !== lastIndex)
+                        " AQUIIi -->
+                      <div
+                        v-if="
+                          (index === 0 && item.status === 'pending') ||
+                          (item.status === 'pending' && db[index - 1].status === 'paid') ||
+                          index !== lastIndex
+                        "
+                        :class="[
+                          item.status === 'paid' ? 'visually-hidden' : '',
+                          'payments__box__addPayment position-absolute mt-2',
+                        ]"
+                      >
+                        <button class="btn--addPayment" @click="addPayment(index)">+</button>
+                        <p>Agregar Pago</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <!-- BOTON PAGADO -->
-                <a v-if="item.status === 'paid'" class="">
+                <a v-if="item.status === 'paid'" class="btnModal d-flex justify-content-center">
                   <div class="card__status--paid d-flex justify-content-center align-items-center">
                     <img src="../assets/paid.svg" />
                   </div>
@@ -57,23 +85,13 @@
                 <p class="card__info mt-2">
                   <span class="card__info--receivable">{{ item.toBePaid }} {{ CURRENCY }}</span> ({{
                     item.percentage
-                  }})%
+                  }}%)
                 </p>
                 <p class="card__date">
                   <span class="card__date__paid" v-if="item.status === 'paid'">Pagado </span>
                   <span :class="item.status === 'paid' ? 'card__date__paid' : 'card__date'">{{ item.date }}</span>
                 </p>
               </div>
-            </div>
-
-            <div
-              v-if="
-                (db.length === 1 && item.status === 'pending') || (item.status === 'pending' && index !== lastIndex)
-              "
-              class="payments__box__addPayment mt-2"
-            >
-              <button class="btn--addPayment" @click="addPayment(index)">+</button>
-              <p>Agregar Pago</p>
             </div>
           </div>
         </div>
@@ -92,8 +110,8 @@
             ><span class="payments__info__amount"> {{ this.RECEIVABLE }} {{ this.CURRENCY }}</span>
           </div>
         </div>
-        <div class="flex-nowrap payments__box d-flex gap-2">
-          <div v-for="(item, index) in db" :key="index">
+        <div class="flex-nowrap row payments__box d-flex">
+          <div class="col-3 d-flex flex-start" v-for="(item, index) in db" :key="index">
             <div class="edit__card payments__card d-flex justify-content-center align-items-center flex-column">
               <div v-if="item.status === 'pending'" class="card__status"></div>
               <a v-else class="">
@@ -101,6 +119,7 @@
                   <img src="../assets/paid.svg" />
                 </div>
               </a>
+
               <input v-if="item.status === 'pending'" class="card__title--input mt-2" v-model="item.title" />
               <p v-else class="edit__title--paid mt-2">{{ item.title }}</p>
 
@@ -160,11 +179,7 @@
 import PaymentsModal from '@/components/PaymentsModal.vue';
 const CURRENCY = 'UF'; //Divisa
 const RECEIVABLE = 182; //Por cobrar
-const datos = [
-  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
-  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
-  { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
-];
+const datos = [{ id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' }];
 export default {
   name: 'PaymentsApp',
   components: {
@@ -183,6 +198,7 @@ export default {
       currentDay: '',
     };
   },
+
   computed: {
     lastIndex() {
       let lastIndex = this.db[this.db.length - 1];
@@ -369,15 +385,18 @@ export default {
 
 main {
   margin: 0 auto;
-  width: 100%;
+  width: 848px;
   min-width: 380px;
   max-width: 1080px;
+}
+.row {
+  --bs-gutter-x: 0;
+  margin: 0;
 }
 .payments {
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0px 1px 0px #e2e8f0;
-  width: 848px;
 }
 .payments__info {
   max-height: 76px;
@@ -401,6 +420,7 @@ main {
 }
 
 .card__status {
+  background-color: #ffffff;
   border: 3px solid #1d4ed8;
   border-radius: 50%;
   width: 48px;
@@ -470,8 +490,12 @@ main {
 }
 
 .card__info {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 600;
+
+  font-style: normal;
+
+  line-height: 17px;
 }
 .edit__info--input {
   font-size: 0.8rem;
@@ -484,6 +508,8 @@ main {
 }
 .card__date {
   font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 20px;
 }
 .card__date__paid {
   color: #059669;
@@ -512,12 +538,7 @@ main {
 }
 
 .payments__card__box {
-  /* width: 120px; */
   height: 137px;
-}
-.edit__card {
-  width: 120px;
-  height: 218px;
 }
 
 ::-webkit-scrollbar {
@@ -580,10 +601,9 @@ main {
   height: 34px;
 }
 
-.lineaC {
-  position: relative;
-  right: -28px;
-  width: 100px;
+.line__container {
+  right: -127px;
+  width: 129px;
   height: 22px;
   display: flex;
   flex-direction: row;
@@ -592,31 +612,31 @@ main {
   color: red;
   z-index: 0;
 }
-.linead {
-  position: absolute;
+.line__container--green {
+  right: -155px;
+  width: 130px;
+  height: 22px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  color: red;
+  z-index: 0;
+  top: 13px;
+}
+.linea-r {
   height: 1px;
   width: 100%;
-  background-color: blue;
+  z-index: 0;
 }
-
-/* .lineai {
-  height: 5px;
-  background-color: blue;
-  width: 150px;
-  position: absolute;
-  top: 50%;
-  right: -1px;
-}
-.linead {
-  height: 10px;
+.line-paid {
   background-color: #059669;
-  width: 150px;
-  position: absolute;
-  top: 50%;
-  left: -2px;
 }
-.letra {
+.line-not-paid {
+  background-color: #e2e8f0;
+}
+.btnModal {
+  z-index: 10;
   background-color: white;
-  z-index: 200;
-} */
+}
 </style>
