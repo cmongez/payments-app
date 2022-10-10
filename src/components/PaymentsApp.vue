@@ -194,7 +194,7 @@
 import PaymentsModal from '@/components/PaymentsModal.vue';
 const CURRENCY = 'UF'; //Divisa
 const RECEIVABLE = 182; //Por cobrar
-
+//Data inicial simulada
 const initialData = [
   { id: 1, title: 'Anticipo', toBePaid: 182, percentage: 100, status: 'pending', date: '22 Ene, 2022' },
 ];
@@ -434,6 +434,7 @@ export default {
 </script>
 
 <style scoped>
+/* Decidi utilizar la METODOLOGIA BEM para el manejo de las clases de CSS porque facilita utilizacion de SASS aunque para esta prueba no haya sido sugerido  */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
 main {
@@ -601,7 +602,7 @@ main {
 .payments__card__box {
   height: 137px;
 }
-
+/* barra :horizontal */
 ::-webkit-scrollbar {
   width: 80px; /* Tamaño del scroll en vertical */
   height: 8px; /* Tamaño del scroll en horizontal */
@@ -616,7 +617,7 @@ main {
   color: #64748b;
 }
 
-/* buttons */
+/* botones */
 
 .btn--addPayment {
   opacity: 1;
@@ -662,6 +663,7 @@ main {
   height: 34px;
 }
 
+/* Lineas */
 .line__container {
   right: -139px;
   width: 160px;
