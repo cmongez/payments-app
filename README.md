@@ -1,24 +1,12 @@
-# payments-app
+## CHALLENGE BSale - Back End (API REST)
+<cemter><img src="https://www.oscarlijo.com/blog/wp-content/uploads/2017/06/vue.png" /></center>
 
-## Project setup
-```
-npm install
-```
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## Prueba técnica
+Determinar los conocimiento en el manejo de componentes en Vue 2
 
-### Compiles and minifies for production
-```
-npm run build
-```
+## PaymentsApp
 
-### Lints and fixes files
-```
-npm run lint
-```
+Realizado solamente con las herramientas permitidas Vue2 y Bootstrap.
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+Implemente la metodologia BEM para el nombre de las clases en CSS para en un futuro utilizar SASS y facilitar la lectura del codigo. 
